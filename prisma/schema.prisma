@@ -23,8 +23,8 @@ model product {
   name          String
   price         Float
   stock         Int             @default(0)
+  stockmovement StockMovement[]
   sale          sale[]
-  stockmovement stockmovement[]
 }
 
 model sale {
@@ -39,15 +39,13 @@ model sale {
   @@index([productId], map: "Sale_productId_fkey")
 }
 
-model stockmovement {
-  id        String   @id @default(cuid())  
+model StockMovement {
+  id        String   @id
   productId String
   quantity  Int
   type      String
   date      DateTime @default(now())
+  product   product  @relation(fields: [productId], references: [id], onDelete: NoAction, map: "StockMovement_productId_fkey")
 
-  product   product  @relation(fields: [productId], references: [id], onDelete: NoAction)
-
-  @@map("stockmovement") // 👈 Maps the Prisma model to a lowercase table name
+  @@index([productId], map: "StockMovement_productId_fkey")
 }
-

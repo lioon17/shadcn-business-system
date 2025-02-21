@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const stockMovements = await prisma.stockmovement.findMany({
+    const stockMovements = await prisma.StockMovement.findMany({
       include: {
         product: {
           select: {
