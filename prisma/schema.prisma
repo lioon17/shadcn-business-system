@@ -40,12 +40,14 @@ model sale {
 }
 
 model stockmovement {
-  id        String   @id
+  id        String   @id @default(cuid())  
   productId String
   quantity  Int
   type      String
   date      DateTime @default(now())
-  product   product  @relation(fields: [productId], references: [id], onDelete: NoAction, map: "StockMovement_productId_fkey")
 
-  @@index([productId], map: "StockMovement_productId_fkey")
+  product   product  @relation(fields: [productId], references: [id], onDelete: NoAction)
+
+  @@map("stockmovement") // 👈 Maps the Prisma model to a lowercase table name
 }
+
