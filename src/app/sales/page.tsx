@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useCallback } from "react";
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -70,26 +71,21 @@ export default function SalesPage() {
     },
   });
 
-  useEffect(() => {
-    fetchSales();
-    fetchProducts();
-  }, []);
-
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     try {
       const response = await fetch("/api/sales");
       if (!response.ok) throw new Error("Failed to fetch sales");
       const data = await response.json();
-  
+
       console.log("📌 Fetched Sales Data:", data); // Debugging
-  
+
       setSales(
-        data.map((sale: any) => ({
+        data.map((sale: Sale) => ({
           ...sale,
           date: new Date(sale.date),
           price: Number(sale.price),
           total: Number(sale.total),
-          product: sale.product ? { ...sale.product, price: Number(sale.product.price) } : null, // ✅ Ensure product exists
+          product: sale.product ? { ...sale.product, price: Number(sale.product.price) } : null,
         }))
       );
     } catch (error) {
@@ -98,21 +94,27 @@ export default function SalesPage() {
     } finally {
       setLoading(false);
     }
-  };
-  
+  }, [toast]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const response = await fetch("/api/products");
       if (!response.ok) throw new Error("Failed to fetch products");
       const data = await response.json();
 
-      setProducts(data.map((product: any) => ({ ...product, price: Number(product.price) })));
+      console.log("📌 Fetched Products Data:", data); // Debugging
+
+      setProducts(data.map((product: Product) => ({ ...product, price: Number(product.price) })));
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("❌ Error fetching products:", error);
       toast({ title: "Error", description: "Failed to fetch products.", variant: "destructive" });
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchSales();
+    fetchProducts();
+  }, [fetchSales, fetchProducts]); // ✅ Dependencies added correctly
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!values.productId || values.price <= 0 || values.quantity <= 0) {

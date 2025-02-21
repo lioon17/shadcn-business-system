@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,14 +13,7 @@ export default function SalesReportPage() {
   const [salesData, setSalesData] = useState<{ month: string; total_sales: number }[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchSalesData(selectedYear);
-  }, [selectedYear]);
-
-  /**
-   * 🔹 Fetch Sales Report Data from API
-   */
-  const fetchSalesData = async (year: string) => {
+  const fetchSalesData = useCallback(async (year: string) => {
     setLoading(true);
     try {
       const response = await fetch(`/api/sales-report?year=${year}`);
@@ -38,8 +31,13 @@ export default function SalesReportPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]); // ✅ Dependencies correctly included
 
+  useEffect(() => {
+    fetchSalesData(selectedYear);
+  }, [selectedYear, fetchSalesData]);
+
+  
   return (
     <div className="p-6 space-y-6">
       {/* Header & Year Selector */}

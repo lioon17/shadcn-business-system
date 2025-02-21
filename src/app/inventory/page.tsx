@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useCallback, useState } from "react";
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -79,10 +79,29 @@ export default function InventoryPage() {
     },
   })
 
-  useEffect(() => {
-    fetchProducts()
-  }, [])
+  const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/inventory");
+      if (!response.ok) throw new Error("Failed to fetch products");
 
+      const data = await response.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("❌ Error fetching products:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch products. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]); // ✅ Add toast as a dependency
+
+  /**
+   * 🔹 Sync Form with Selected Product
+   */
   useEffect(() => {
     if (currentProduct) {
       form.reset({
@@ -91,28 +110,18 @@ export default function InventoryPage() {
         price: currentProduct.price,
         stock: currentProduct.stock,
         supplier: currentProduct.supplier,
-      })
+      });
     }
-  }, [currentProduct, form])
+  }, [currentProduct, form]); // ✅ Ensures form updates when currentProduct changes
 
-  const fetchProducts = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch("/api/inventory")
-      if (!response.ok) throw new Error("Failed to fetch products")
-      const data = await response.json()
-      setProducts(data)
-    } catch (error) {
-      console.error("Error fetching products:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch products. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  /**
+   * 🔹 Fetch Data on Component Mount
+   */
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]); // ✅ Correctly references fetchProducts
+
+  
 
   const handleAddProduct = async (data: z.infer<typeof productSchema>) => {
     try {

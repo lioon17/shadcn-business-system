@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useEffect, useCallback, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -46,42 +46,51 @@ export default function AccountingPage() {
   })
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchStockMovements()
-    fetchSales()
-  }, [])
-
-  const fetchStockMovements = async () => {
+  const fetchStockMovements = useCallback(async () => {
     try {
-      const response = await fetch("/api/stock-movements")
-      if (!response.ok) throw new Error("Failed to fetch stock movements")
-      const data = await response.json()
-      setStockMovements(data)
+      const response = await fetch("/api/stock-movements");
+      if (!response.ok) throw new Error("Failed to fetch stock movements");
+
+      const data = await response.json();
+      setStockMovements(data);
     } catch (error) {
-      console.error("Error fetching stock movements:", error)
+      console.error("❌ Error fetching stock movements:", error);
       toast({
         title: "Error",
         description: "Failed to fetch stock movements. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  }, [toast]); // ✅ Correct dependency
 
-  const fetchSales = async () => {
+  /**
+   * 🔹 Fetch Sales Data
+   */
+  const fetchSales = useCallback(async () => {
     try {
-      const response = await fetch("/api/sales")
-      if (!response.ok) throw new Error("Failed to fetch sales")
-      const data = await response.json()
-      setSales(data)
+      const response = await fetch("/api/sales");
+      if (!response.ok) throw new Error("Failed to fetch sales");
+
+      const data = await response.json();
+      setSales(data);
     } catch (error) {
-      console.error("Error fetching sales:", error)
+      console.error("❌ Error fetching sales:", error);
       toast({
         title: "Error",
         description: "Failed to fetch sales. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  }, [toast]); // ✅ Correct dependency
+
+  /**
+   * 🔹 Fetch Data on Component Mount
+   */
+  useEffect(() => {
+    fetchStockMovements();
+    fetchSales();
+  }, [fetchStockMovements, fetchSales]); // ✅ Dependencies correctly included
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
