@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Inventory {
+  id          Int      @id @default(autoincrement()) // Auto-increment for MySQL
+  name        String
+  category    String
+  price       Float
+  stock       Int // Keeps track of available stock
+  supplier    String?
+  status      String
+  lastUpdated DateTime @updatedAt
+}
+
+model Product {
+  id             String          @id @default(cuid())  // Use cuid() for unique ID
+  name           String
+  price          Float
+  stock         Int @default(0)  // Ensures stock tracking
+  sales         Sale[]
+  stockMovements StockMovement[] // 🔹 Added relation to StockMovement
+}
+
+model Sale {
+  id        String   @id @default(cuid())  // Unique ID for sale
+  date      DateTime @default(now()) 
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  total     Float
+}
+
+model StockMovement {
+  id         String   @id @default(cuid())  // Unique stock movement ID
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  type       String   // "IN" for stock increase, "OUT" for stock decrease
+  date       DateTime @default(now())
+}
