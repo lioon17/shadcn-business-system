@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // ✅ Ensure correct lowercase model name `stockmovement`
     const stockMovements = await prisma.stockmovement.findMany({
       include: {
         product: {
@@ -22,8 +21,12 @@ export async function GET() {
     });
 
     return NextResponse.json(stockMovements, { status: 200 });
-  } catch (error: any) {
-    console.error("❌ Error fetching stock movements:", error.message);
+  } catch (error: unknown) {  // 👈 Fix applied: Use `unknown`
+    if (error instanceof Error) {
+      console.error("❌ Error fetching stock movements:", error.message);
+    } else {
+      console.error("❌ Unknown error occurred:", error);
+    }
     return NextResponse.json({ error: "Failed to fetch stock movements" }, { status: 500 });
   }
 }
