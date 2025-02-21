@@ -6,19 +6,21 @@ const prisma = new PrismaClient();
 /**
  * 🔹 PUT: Update a product
  */
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, context: { params: { id: string } }) {
   try {
-    const id = Number(params.id);
-    if (isNaN(id)) {
+    const { id } = context.params;
+    const productId = Number(id);
+
+    if (isNaN(productId)) {
       return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
     }
 
     const body = await req.json();
 
-    console.log("Updating product with ID:", id, "New Data:", body); // ✅ Debugging
+    console.log("📌 Updating product with ID:", productId, "New Data:", body); // ✅ Debugging
 
     const updatedProduct = await prisma.inventory.update({
-      where: { id },
+      where: { id: productId },
       data: {
         name: body.name,
         category: body.category,
@@ -31,28 +33,30 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     return NextResponse.json(updatedProduct, { status: 200 });
   } catch (error) {
-    console.error("Error updating product:", error);
-    return NextResponse.json({ error: "Error updating product" }, { status: 500 });
+    console.error("❌ Error updating product:", error);
+    return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
   }
 }
 
 /**
  * 🔹 DELETE: Remove a product
  */
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, context: { params: { id: string } }) {
   try {
-    const id = Number(params.id);
-    if (isNaN(id)) {
+    const { id } = context.params;
+    const productId = Number(id);
+
+    if (isNaN(productId)) {
       return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
     }
 
     await prisma.inventory.delete({
-      where: { id },
+      where: { id: productId },
     });
 
-    return NextResponse.json({ message: "Product deleted successfully" }, { status: 200 });
+    return NextResponse.json({ message: "✅ Product deleted successfully" }, { status: 200 });
   } catch (error) {
-    console.error("Error deleting product:", error);
-    return NextResponse.json({ error: "Error deleting product" }, { status: 500 });
+    console.error("❌ Error deleting product:", error);
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
   }
 }
