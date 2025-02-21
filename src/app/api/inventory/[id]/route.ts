@@ -52,24 +52,30 @@ export async function PUT(request: NextRequest) {
 
 
 /**
- * 🔹 DELETE: Remove a product
+ * 🔹 DELETE: Remove a product from the inventory
  */
-export async function DELETE(req: Request, context: { params: { id: string } }) {
-  try {
-    const { id } = context.params;
-    const productId = Number(id);
-
-    if (isNaN(productId)) {
-      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+export async function DELETE(request: NextRequest) {
+    try {
+      // Extract ID from the request URL
+      const url = new URL(request.url);
+      const id = url.pathname.split("/").pop(); // Get the last part of the URL
+      if (!id) {
+        return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
+      }
+  
+      const productId = parseInt(id, 10);
+      if (isNaN(productId)) {
+        return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+      }
+  
+      // Delete product
+      await prisma.inventory.delete({
+        where: { id: productId },
+      });
+  
+      return NextResponse.json({ message: "✅ Product deleted successfully" }, { status: 200 });
+    } catch (error) {
+      console.error("❌ Error deleting product:", error);
+      return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
     }
-
-    await prisma.inventory.delete({
-      where: { id: productId },
-    });
-
-    return NextResponse.json({ message: "✅ Product deleted successfully" }, { status: 200 });
-  } catch (error) {
-    console.error("❌ Error deleting product:", error);
-    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
   }
-}
