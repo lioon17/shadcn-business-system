@@ -7,15 +7,23 @@ const prisma = new PrismaClient();
  * 🔹 GET: Fetch all products
  */
 export async function GET() {
-  try {
-    const products = await prisma.inventory.findMany();
-    return NextResponse.json(products, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    return NextResponse.json({ error: "Error fetching products" }, { status: 500 });
+    try {
+      const products = await prisma.inventory.findMany();
+  
+      console.log("📌 Debugging: Products fetched:", products); // ✅ Debugging
+  
+      if (!products || products.length === 0) {
+        console.warn("⚠ Warning: No products found in inventory");
+        return NextResponse.json({ error: "No products available" }, { status: 404 });
+      }
+  
+      return NextResponse.json(products, { status: 200 });
+    } catch (error) {
+      console.error("❌ Error fetching products:", error);
+      return NextResponse.json({ error: "Error fetching products" }, { status: 500 });
+    }
   }
-}
-
+  
 /**
  * 🔹 POST: Add a new product
  */

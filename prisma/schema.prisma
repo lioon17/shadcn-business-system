@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,41 +7,45 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Inventory {
-  id          Int      @id @default(autoincrement()) // Auto-increment for MySQL
+model inventory {
+  id          Int      @id @default(autoincrement())
   name        String
   category    String
   price       Float
-  stock       Int // Keeps track of available stock
+  stock       Int
   supplier    String?
   status      String
-  lastUpdated DateTime @updatedAt
+  lastUpdated DateTime
 }
 
-model Product {
-  id             String          @id @default(cuid())  // Use cuid() for unique ID
-  name           String
-  price          Float
-  stock         Int @default(0)  // Ensures stock tracking
-  sales         Sale[]
-  stockMovements StockMovement[] // 🔹 Added relation to StockMovement
+model product {
+  id            String          @id
+  name          String
+  price         Float
+  stock         Int             @default(0)
+  sale          sale[]
+  stockmovement stockmovement[]
 }
 
-model Sale {
-  id        String   @id @default(cuid())  // Unique ID for sale
-  date      DateTime @default(now()) 
+model sale {
+  id        String   @id
+  date      DateTime @default(now())
   productId String
-  product   Product  @relation(fields: [productId], references: [id])
   quantity  Int
   price     Float
   total     Float
+  product   product  @relation(fields: [productId], references: [id], onDelete: NoAction, map: "Sale_productId_fkey")
+
+  @@index([productId], map: "Sale_productId_fkey")
 }
 
-model StockMovement {
-  id         String   @id @default(cuid())  // Unique stock movement ID
-  productId  String
-  product    Product  @relation(fields: [productId], references: [id])
-  quantity   Int
-  type       String   // "IN" for stock increase, "OUT" for stock decrease
-  date       DateTime @default(now())
+model stockmovement {
+  id        String   @id
+  productId String
+  quantity  Int
+  type      String
+  date      DateTime @default(now())
+  product   product  @relation(fields: [productId], references: [id], onDelete: NoAction, map: "StockMovement_productId_fkey")
+
+  @@index([productId], map: "StockMovement_productId_fkey")
 }

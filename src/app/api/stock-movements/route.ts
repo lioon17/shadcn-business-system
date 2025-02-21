@@ -1,27 +1,28 @@
-import { NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const stockMovements = await prisma.stockMovement.findMany({
+    const stockMovements = await prisma.stockmovement.findMany({
       include: {
         product: {
           select: {
+            id: true,
             name: true,
+            price: true,
           },
         },
       },
       orderBy: {
         date: "desc",
       },
-    })
+    });
 
-    return NextResponse.json(stockMovements)
-  } catch (error) {
-    console.error("Error fetching stock movements:", error)
-    return NextResponse.json({ error: "Failed to fetch stock movements" }, { status: 500 })
+    return NextResponse.json(stockMovements, { status: 200 });
+  } catch (error: any) {
+    console.error("❌ Error fetching stock movements:", error.message);
+    return NextResponse.json({ error: "Failed to fetch stock movements" }, { status: 500 });
   }
 }
-
