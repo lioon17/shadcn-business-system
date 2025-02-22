@@ -19,12 +19,12 @@ model inventory {
 }
 
 model product {
-  id         String       @id
-  name       String
-  price      Float
-  stock      Int          @default(0)
-  migrations migrations[]
-  sale       sale[]
+  id        String      @id
+  name      String
+  price     Float
+  stock     Int         @default(0)
+  migration Migration[]
+  sale      sale[]
 }
 
 model sale {
@@ -39,7 +39,7 @@ model sale {
   @@index([productId], map: "Sale_productId_fkey")
 }
 
-model migrations {
+model Migration {
   id        String   @id @default(cuid())
   productId String
   quantity  Int

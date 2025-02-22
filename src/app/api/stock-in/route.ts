@@ -3,14 +3,10 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function POST(request: Request) {
+export async function POST(request: Request) {  // ✅ Only POST is allowed
   try {
     const body = await request.json();
     const { productId, quantity } = body;
-
-    if (!productId || !quantity) {
-      return NextResponse.json({ error: "Product ID and quantity are required" }, { status: 400 });
-    }
 
     // 🔹 Check if product exists
     const product = await prisma.product.findUnique({
@@ -24,11 +20,11 @@ export async function POST(request: Request) {
     // 🔹 Update product stock
     await prisma.product.update({
       where: { id: productId },
-      data: { stock: { increment: quantity } }, // 🔹 Increase stock
+      data: { stock: { increment: quantity } }, // ✅ Increase stock
     });
 
-    // 🔹 Log Stock Movement in "migrations" table (previously stock_movement)
-    await prisma.migrations.create({
+    // 🔹 Log Stock Movement
+    await prisma.migration.create({
       data: {
         productId,
         quantity,

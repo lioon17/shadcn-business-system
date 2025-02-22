@@ -109,31 +109,31 @@ export default function AccountingPage() {
     }
 
     try {
-      const response = await fetch("/api/stock-in", {
+      const response = await fetch("/api/stock-in", {  // ✅ Ensure POST is used
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(newStockEntry),
-      })
-
-      if (!response.ok) throw new Error("Failed to add stock entry")
-
-      setNewStockEntry({ productId: "", quantity: "" })
+      });
+  
+      if (!response.ok) throw new Error("Failed to add stock entry");
+  
+      setNewStockEntry({ productId: "", quantity: "" });
       toast({
         title: "Success",
         description: "New stock entry added successfully",
-      })
-      fetchStockMovements() // Refresh stock movements
+      });
+      fetchStockMovements(); // Refresh stock movements
     } catch (error) {
-      console.error("Error adding stock entry:", error)
+      console.error("Error adding stock entry:", error);
       toast({
         title: "Error",
         description: "Failed to add stock entry. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const filteredStockMovements =
     selectedMonth === "All"
