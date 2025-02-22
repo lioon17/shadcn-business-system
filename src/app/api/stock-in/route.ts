@@ -8,6 +8,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { productId, quantity } = body;
 
+    if (!productId || !quantity) {
+      return NextResponse.json({ error: "Product ID and quantity are required" }, { status: 400 });
+    }
+
     // 🔹 Check if product exists
     const product = await prisma.product.findUnique({
       where: { id: productId },
@@ -23,8 +27,8 @@ export async function POST(request: Request) {
       data: { stock: { increment: quantity } }, // 🔹 Increase stock
     });
 
-    // 🔹 Log Stock Movement
-    await prisma.stockMovement.create({
+    // 🔹 Log Stock Movement in "migrations" table (previously stock_movement)
+    await prisma.migrations.create({
       data: {
         productId,
         quantity,

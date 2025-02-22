@@ -19,14 +19,12 @@ model inventory {
 }
 
 model product {
-  id            String           @id
-  name          String
-  price         Float
-  stock         Int              @default(0)
-  sale          sale[]
-  stockmovement stock_movement[]
-
-  @@map("product")
+  id         String       @id
+  name       String
+  price      Float
+  stock      Int          @default(0)
+  migrations migrations[]
+  sale       sale[]
 }
 
 model sale {
@@ -39,10 +37,9 @@ model sale {
   product   product  @relation(fields: [productId], references: [id], onDelete: NoAction, map: "Sale_productId_fkey")
 
   @@index([productId], map: "Sale_productId_fkey")
-  @@map("sale")
 }
 
-model stock_movement {
+model migrations {
   id        String   @id @default(cuid())
   productId String
   quantity  Int
@@ -51,5 +48,5 @@ model stock_movement {
   product   product  @relation(fields: [productId], references: [id], onDelete: NoAction, map: "StockMovement_productId_fkey")
 
   @@index([productId], map: "StockMovement_productId_fkey")
-  @@map("stock_movement")
+  @@map("migrations")
 }
