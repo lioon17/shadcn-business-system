@@ -21,8 +21,11 @@ export async function GET() {
     });
 
     return NextResponse.json(stockMovements, { status: 200 });
-  } catch (error: any) {
-    console.error("❌ Error fetching stock movements:", error.message);
-    return NextResponse.json({ error: "Failed to fetch stock movements" }, { status: 500 });
-  }
+   } catch (error: unknown) {  // ✅ Use 'unknown' instead of 'any'
+    if (error instanceof Error) {
+        console.error("❌ Error fetching stock movements:", error.message);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: "An unknown error occurred" }, { status: 500 });
+}
 }
