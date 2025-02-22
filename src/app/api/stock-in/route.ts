@@ -29,14 +29,15 @@ export async function POST(request: Request) {
     });
 
     // 🔹 Log Stock Movement
-    await prisma.migrations.create({
-      data: {
-        productId,
-        quantity,
-        type: "IN",
-        date: new Date(), // ✅ Ensure `date` is set
-      },
-    });
+    await prisma.migration.create({  // ✅ Use "migration" (model name), NOT "migrations"
+        data: {
+          productId,
+          quantity,
+          type: "IN",
+          date: new Date(),
+        },
+      });
+      
 
     return NextResponse.json(
       { message: "Stock updated successfully" },

@@ -48,6 +48,7 @@ model migration {
   product   product  @relation(fields: [productId], references: [id], onDelete: NoAction, map: "StockMovement_productId_fkey")
 
   @@index([productId], map: "StockMovement_productId_fkey")
-  @@map("migrations")
+  @@map("migrations") // ✅ Maps "migration" model to "migrations" table in MySQL
 }
+
 
