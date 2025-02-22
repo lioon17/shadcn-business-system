@@ -3,10 +3,15 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function POST(request: Request) {  // ✅ Only POST is allowed
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { productId, quantity } = body;
+
+    // 🔹 Validate input
+    if (!productId || typeof quantity !== "number" || quantity <= 0) {
+      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
 
     // 🔹 Check if product exists
     const product = await prisma.product.findUnique({
@@ -29,12 +34,18 @@ export async function POST(request: Request) {  // ✅ Only POST is allowed
         productId,
         quantity,
         type: "IN",
+        date: new Date(), // ✅ Ensure `date` is set
       },
     });
 
-    return NextResponse.json({ message: "Stock updated successfully" }, { status: 201 });
+    return NextResponse.json(
+      { message: "Stock updated successfully" },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("❌ Error adding stock:", error);
     return NextResponse.json({ error: "Error updating stock" }, { status: 500 });
+  } finally {
+    await prisma.$disconnect(); // ✅ Prevents memory leaks
   }
 }
