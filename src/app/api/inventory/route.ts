@@ -37,15 +37,17 @@ export async function POST(req: Request) {
     }
 
     const product = await prisma.inventory.create({
-      data: {
-        name: body.name,
-        category: body.category,
-        price: parseFloat(body.price),
-        stock: parseInt(body.stock),
-        supplier: body.supplier || "N/A",
-        status: body.stock > 0 ? "In Stock" : "Out of Stock",
-      },
-    });
+        data: {
+          name: body.name,
+          category: body.category,
+          price: parseFloat(body.price),
+          stock: parseInt(body.stock),
+          supplier: body.supplier || "N/A",
+          status: body.stock > 0 ? "In Stock" : "Out of Stock",
+          lastUpdated: new Date(), // ✅ Fix: Add the required `lastUpdated` field
+        },
+      });
+      
 
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
