@@ -5,20 +5,20 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const stockMovements = await prisma.StockMovement.findMany({
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
+    const stockMovements = await prisma.stockMovement.findMany({
+        include: {
+          product: {
+            select: {
+              name: true,
+              price: true,
+            },
           },
         },
-      },
-      orderBy: {
-        date: "desc",
-      },
-    });
+        orderBy: {
+          date: "desc",
+        },
+      });
+      
 
     return NextResponse.json(stockMovements, { status: 200 });
   } catch (error: unknown) {  // 👈 Fix applied: Use `unknown`

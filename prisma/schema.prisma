@@ -23,8 +23,8 @@ model product {
   name          String
   price         Float
   stock         Int             @default(0)
-  stockmovement StockMovement[]
   sale          sale[]
+  stockmovement StockMovement[]
 }
 
 model sale {
@@ -40,7 +40,7 @@ model sale {
 }
 
 model StockMovement {
-  id        String   @id
+  id        String   @id @default(cuid())
   productId String
   quantity  Int
   type      String
@@ -48,4 +48,5 @@ model StockMovement {
   product   product  @relation(fields: [productId], references: [id], onDelete: NoAction, map: "StockMovement_productId_fkey")
 
   @@index([productId], map: "StockMovement_productId_fkey")
+  @@map("stock_movement")
 }

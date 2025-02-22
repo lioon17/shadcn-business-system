@@ -181,7 +181,7 @@ export default function Page() {
                 <TableBody>
                   {[
                     {
-                      name: "Esther Howard",
+                      name: "BIG PLUG 25FLOW",
                       email: "esther@gmail.com",
                       phone: "(684) 555-0102",
                       company: "MasterCard",
