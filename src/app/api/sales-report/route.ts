@@ -1,5 +1,17 @@
+// sales-report/route.ts
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
+import { RowDataPacket } from "mysql2/promise";
+
+interface MonthlySales extends RowDataPacket {
+  month: number;
+  total_sales: number;
+}
+
+interface FormattedMonthlySales {
+  month: string;
+  total_sales: number;
+}
 
 /**
  * 🔹 GET: Fetch Monthly Sales Report for a Given Year (Aggregated)
@@ -14,9 +26,9 @@ export async function GET(req: Request) {
     }
 
     // 🔹 SQL Query to aggregate total sales per month
-    const [salesData]: any = await db.execute(
+    const [salesData] = await db.execute<MonthlySales[]>(
       `
-      SELECT 
+      SELECT
         MONTH(date) AS month,
         SUM(total) AS total_sales
       FROM sale
@@ -28,7 +40,7 @@ export async function GET(req: Request) {
     );
 
     // 🔹 Convert month numbers into month names
-    const formattedData = salesData.map((item: any) => ({
+    const formattedData: FormattedMonthlySales[] = salesData.map((item) => ({
       month: new Date(Number(year), item.month - 1).toLocaleString("en-US", { month: "long" }),
       total_sales: item.total_sales,
     }));

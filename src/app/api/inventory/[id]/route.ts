@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
+import { ResultSetHeader, FieldPacket } from "mysql2";
 
 /**
  * 🔹 PUT: Update a product in the inventory
@@ -30,7 +31,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the product in the database
-    const [result]: any = await db.execute(
+    const [result] = await db.execute<ResultSetHeader>(
       `UPDATE inventory 
        SET 
          name = COALESCE(?, name), 
@@ -63,33 +64,36 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-
 export async function DELETE(request: NextRequest) {
-    try {
-      // Extract ID from the request URL
-      const url = new URL(request.url);
-      const id = url.pathname.split("/").pop(); // Get the last part of the URL
-  
-      if (!id) {
-        return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
-      }
-  
-      const productId = parseInt(id, 10);
-      if (isNaN(productId)) {
-        return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
-      }
-  
-      // Delete product
-      const [result]: any = await db.execute("DELETE FROM inventory WHERE id = ?", [productId]);
-  
-      if (result.affectedRows === 0) {
-        return NextResponse.json({ error: "Product not found" }, { status: 404 });
-      }
-  
-      return NextResponse.json({ message: "✅ Product deleted successfully" }, { status: 200 });
-    } catch (error) {
-      console.error("❌ Error deleting product:", error);
-      return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
+  try {
+    // Extract ID from the request URL
+    const url = new URL(request.url);
+    const id = url.pathname.split("/").pop(); // Get the last part of the URL
+
+    if (!id) {
+      return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
     }
+
+    const productId = parseInt(id, 10);
+    if (isNaN(productId)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+    }
+
+    // ✅ Correctly type the response
+    const [result]: [ResultSetHeader, FieldPacket[]] = await db.execute(
+      "DELETE FROM inventory WHERE id = ?",
+      [productId]
+    );
+
+    if (result.affectedRows === 0) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "✅ Product deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("❌ Error deleting product:", error);
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
   }
+}
+
   

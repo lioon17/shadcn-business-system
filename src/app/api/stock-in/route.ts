@@ -1,10 +1,24 @@
+
+// stock-in/route.ts
 import { NextResponse } from "next/server";
-import db from "@/lib/db"; // ✅ Import MySQL connection
+import db from "@/lib/db";
+import { RowDataPacket, ResultSetHeader } from "mysql2/promise";
+
+interface ProductRow extends RowDataPacket {
+  id: number;
+  name: string;
+  stock: number;
+}
+
+interface StockInInput {
+  productId: number;
+  quantity: number;
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { productId, quantity } = body;
+    const { productId, quantity }: StockInInput = body;
 
     // 🔹 Validate input
     if (!productId || isNaN(quantity) || quantity <= 0) {
@@ -12,19 +26,26 @@ export async function POST(request: Request) {
     }
 
     // 🔹 Check if product exists
-    const [productRows]: any = await db.execute("SELECT * FROM product WHERE id = ?", [productId]);
-    if (!productRows || productRows.length === 0) {  // ✅ Fix: Correct way to check if rows exist
+    const [productRows] = await db.execute<ProductRow[]>(
+      "SELECT * FROM product WHERE id = ?",
+      [productId]
+    );
+    
+    if (!productRows || productRows.length === 0) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     // 🔹 Update product stock
-    await db.execute("UPDATE product SET stock = stock + ? WHERE id = ?", [quantity, productId]);
+    await db.execute<ResultSetHeader>(
+      "UPDATE product SET stock = stock + ? WHERE id = ?",
+      [quantity, productId]
+    );
 
     // 🔹 Log Stock Movement
-    await db.execute("INSERT INTO migrations (productId, quantity, type, date) VALUES (?, ?, 'IN', NOW())", [
-      productId,
-      quantity,
-    ]);
+    await db.execute<ResultSetHeader>(
+      "INSERT INTO migrations (productId, quantity, type, date) VALUES (?, ?, 'IN', NOW())",
+      [productId, quantity]
+    );
 
     return NextResponse.json({ message: "Stock updated successfully" }, { status: 201 });
   } catch (error) {

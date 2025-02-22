@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useCallback } from "react";
+import { useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -19,16 +19,19 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 
 interface Product {
-  id: string
+  id: number // Changed from string to number
   name: string
   price: number
+  stock: number
 }
 
 interface Sale {
-  id: string
+  id: number // Changed from string to number
   date: Date
-  productId: string
-  product: Product
+  productId: number // Changed from string to number
+  product: {
+    name: string
+  }
   quantity: number
   price: number
   total: number
@@ -38,7 +41,8 @@ const formSchema = z.object({
   date: z.date({
     required_error: "Please select a date.",
   }),
-  productId: z.string({
+  productId: z.number({
+    // Changed from string to number
     required_error: "Please select a product.",
   }),
   quantity: z
@@ -56,28 +60,29 @@ const formSchema = z.object({
 })
 
 export default function SalesPage() {
-  const { toast } = useToast();
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast()
+  const [sales, setSales] = useState<Sale[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
-      productId: "",
+      productId: 0,
       quantity: 1,
       price: 0,
     },
-  });
+  })
 
   const fetchSales = useCallback(async () => {
     try {
-      const response = await fetch("/api/sales");
-      if (!response.ok) throw new Error("Failed to fetch sales");
-      const data = await response.json();
+      const response = await fetch("/api/sales")
+      if (!response.ok) throw new Error("Failed to fetch sales")
+      const data = await response.json()
 
-      console.log("📌 Fetched Sales Data:", data); // Debugging
+      console.log("📌 Fetched Sales Data:", data)
 
       setSales(
         data.map((sale: Sale) => ({
@@ -85,77 +90,96 @@ export default function SalesPage() {
           date: new Date(sale.date),
           price: Number(sale.price),
           total: Number(sale.total),
-          product: sale.product ? { ...sale.product, price: Number(sale.product.price) } : null,
-        }))
-      );
+        })),
+      )
     } catch (error) {
-      console.error("❌ Error fetching sales:", error);
-      toast({ title: "Error", description: "Failed to fetch sales.", variant: "destructive" });
+      console.error("❌ Error fetching sales:", error)
+      toast({ title: "Error", description: "Failed to fetch sales.", variant: "destructive" })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [toast]);
+  }, [toast])
 
   const fetchProducts = useCallback(async () => {
     try {
-      const response = await fetch("/api/products");
-      if (!response.ok) throw new Error("Failed to fetch products");
-      const data = await response.json();
+      const response = await fetch("/api/products")
+      if (!response.ok) throw new Error("Failed to fetch products")
+      const data = await response.json()
 
-      console.log("📌 Fetched Products Data:", data); // Debugging
+      console.log("📌 Fetched Products Data:", data)
 
-      setProducts(data.map((product: Product) => ({ ...product, price: Number(product.price) })));
+      setProducts(data.map((product: Product) => ({ ...product, price: Number(product.price) })))
     } catch (error) {
-      console.error("❌ Error fetching products:", error);
-      toast({ title: "Error", description: "Failed to fetch products.", variant: "destructive" });
+      console.error("❌ Error fetching products:", error)
+      toast({ title: "Error", description: "Failed to fetch products.", variant: "destructive" })
     }
-  }, [toast]);
+  }, [toast])
 
   useEffect(() => {
-    fetchSales();
-    fetchProducts();
-  }, [fetchSales, fetchProducts]); // ✅ Dependencies added correctly
+    fetchSales()
+    fetchProducts()
+  }, [fetchSales, fetchProducts])
+
+  const handleProductChange = (productId: number) => {
+    const product = products.find((p) => p.id === productId)
+    setSelectedProduct(product || null)
+    if (product) {
+      form.setValue("price", product.price)
+    }
+  }
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!values.productId || values.price <= 0 || values.quantity <= 0) {
+    if (!selectedProduct) {
       toast({
         title: "Error",
-        description: "Please select a valid product and enter a valid quantity and price.",
+        description: "Please select a valid product.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
-  
+
+    if (selectedProduct.stock < values.quantity) {
+      toast({
+        title: "Error",
+        description: `Insufficient stock. Available: ${selectedProduct.stock}`,
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       const response = await fetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-  
+        body: JSON.stringify({
+          ...values,
+          productId: Number(values.productId), // Ensure productId is sent as a number
+        }),
+      })
+
       if (!response.ok) {
-        const errorResponse = await response.json();
-        throw new Error(errorResponse.error || "Failed to add sale");
+        const errorResponse = await response.json()
+        throw new Error(errorResponse.error || "Failed to add sale")
       }
-  
-      const newSale = await response.json();
-      setSales((prev) => [newSale, ...prev]);
-      form.reset();
-      toast({ title: "Success", description: "Sale added successfully" });
+
+      const newSale = await response.json()
+      setSales((prev) => [newSale, ...prev])
+      form.reset()
+      toast({ title: "Success", description: "Sale added successfully" })
+      fetchProducts() // Refresh products to update stock
+      fetchSales() // Refresh sales list
     } catch (error) {
-      console.error("Error adding sale:", error);
-    
+      console.error("Error adding sale:", error)
+
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "An unexpected error occurred.",
         variant: "destructive",
-      });
+      })
     }
-    
-  };
-  
-  
-  const deleteSale = async (saleId: string) => {
+  }
+
+  const deleteSale = async (saleId: number) => {
     try {
       const response = await fetch(`/api/sales?id=${saleId}`, {
         method: "DELETE",
@@ -168,6 +192,8 @@ export default function SalesPage() {
         title: "Success",
         description: "Sale deleted successfully",
       })
+      fetchProducts() // Refresh products to update stock
+      fetchSales() // Refresh sales list
     } catch (error) {
       console.error("Error deleting sale:", error)
       toast({
@@ -274,7 +300,13 @@ export default function SalesPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Product</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(Number(value)) // Convert to number
+                          handleProductChange(Number(value)) // Convert to number
+                        }}
+                        value={field.value?.toString()} // Convert to string for Select component
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a product" />
@@ -282,13 +314,16 @@ export default function SalesPage() {
                         </FormControl>
                         <SelectContent>
                           {products.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name} - KSH {product.price.toFixed(2)}
+                            <SelectItem key={product.id} value={product.id.toString()}>
+                              {product.name} - KSH {product.price.toFixed(2)} (Stock: {product.stock})
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
+                      {selectedProduct && (
+                        <p className="text-sm text-muted-foreground mt-1">Available stock: {selectedProduct.stock}</p>
+                      )}
                     </FormItem>
                   )}
                 />
@@ -345,56 +380,54 @@ export default function SalesPage() {
             <CardDescription>Latest transactions in the system.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={fetchSales}>Refresh</Button>
+            <Button onClick={fetchSales} className="mb-4">
+              Refresh
+            </Button>
             <Table>
-  <TableHeader>
-    <TableRow>
-      <TableHead>Date</TableHead>
-      <TableHead>Product</TableHead>
-      <TableHead>Quantity</TableHead>
-      <TableHead className="text-right">Total</TableHead>
-      <TableHead className="w-[50px]"></TableHead>
-    </TableRow>
-  </TableHeader>
-  <TableBody>
-  {loading ? (
-    <TableRow>
-      <TableCell colSpan={5} className="text-center">
-        Loading...
-      </TableCell>
-    </TableRow>
-  ) : sales.length === 0 ? (
-    <TableRow>
-      <TableCell colSpan={5} className="text-center">
-        No sales found.
-      </TableCell>
-    </TableRow>
-  ) : (
-    sales.map((sale) => (
-      <TableRow key={sale.id}>
-        <TableCell>{format(sale.date, "PP")}</TableCell>
-        <TableCell>
-        {sale.product?.name || "Unknown Product"} {/* ✅ This prevents errors */}
-      </TableCell>
-{/* ✅ Safe access */}
-        <TableCell>{sale.quantity}</TableCell>
-        <TableCell className="text-right">KSH {sale.total.toFixed(2)}</TableCell>
-        <TableCell>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-red-600"
-            onClick={() => deleteSale(sale.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </TableCell>
-      </TableRow>
-    ))
-  )}
-</TableBody>
-</Table>
-
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : sales.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">
+                      No sales found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sales.map((sale) => (
+                    <TableRow key={sale.id}>
+                      <TableCell>{format(sale.date, "PP")}</TableCell>
+                      <TableCell>{sale.product?.name || "Unknown Product"}</TableCell>
+                      <TableCell>{sale.quantity}</TableCell>
+                      <TableCell className="text-right">KSH {sale.total.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600"
+                          onClick={() => deleteSale(sale.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
