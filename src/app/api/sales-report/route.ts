@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import db from "@/lib/db";
 
 /**
  * 🔹 GET: Fetch Monthly Sales Report for a Given Year (Aggregated)
@@ -15,27 +13,29 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Valid year is required" }, { status: 400 });
     }
 
-    const salesData = await prisma.sale.groupBy({
-      by: ["date"],
-      _sum: { total: true },
-      where: {
-        date: {
-          gte: new Date(`${year}-01-01T00:00:00.000Z`),
-          lte: new Date(`${year}-12-31T23:59:59.999Z`),
-        },
-      },
-      orderBy: { date: "asc" },
-    });
+    // 🔹 SQL Query to aggregate total sales per month
+    const [salesData]: any = await db.execute(
+      `
+      SELECT 
+        MONTH(date) AS month,
+        SUM(total) AS total_sales
+      FROM sale
+      WHERE YEAR(date) = ?
+      GROUP BY MONTH(date)
+      ORDER BY MONTH(date) ASC
+      `,
+      [year]
+    );
 
-    // Convert dates into month names
-    const formattedData = salesData.map((sale) => ({
-      month: new Date(sale.date).toLocaleString("en-US", { month: "long" }),
-      total_sales: sale._sum.total || 0,
+    // 🔹 Convert month numbers into month names
+    const formattedData = salesData.map((item: any) => ({
+      month: new Date(Number(year), item.month - 1).toLocaleString("en-US", { month: "long" }),
+      total_sales: item.total_sales,
     }));
 
-    return NextResponse.json(formattedData);
+    return NextResponse.json(formattedData, { status: 200 });
   } catch (error) {
-    console.error("Error fetching sales report:", error);
+    console.error("❌ Error fetching sales report:", error);
     return NextResponse.json({ error: "Failed to fetch sales report" }, { status: 500 });
   }
 }

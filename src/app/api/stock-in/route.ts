@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import db from "@/lib/db"; // ✅ Import MySQL connection
 
 export async function POST(request: Request) {
   try {
@@ -9,44 +7,28 @@ export async function POST(request: Request) {
     const { productId, quantity } = body;
 
     // 🔹 Validate input
-    if (!productId || typeof quantity !== "number" || quantity <= 0) {
+    if (!productId || isNaN(quantity) || quantity <= 0) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
     // 🔹 Check if product exists
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
-
-    if (!product) {
+    const [productRows]: any = await db.execute("SELECT * FROM product WHERE id = ?", [productId]);
+    if (!productRows || productRows.length === 0) {  // ✅ Fix: Correct way to check if rows exist
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     // 🔹 Update product stock
-    await prisma.product.update({
-      where: { id: productId },
-      data: { stock: { increment: quantity } }, // ✅ Increase stock
-    });
+    await db.execute("UPDATE product SET stock = stock + ? WHERE id = ?", [quantity, productId]);
 
     // 🔹 Log Stock Movement
-    await prisma.migrations.create({  // ✅ Use "migration" (model name), NOT "migrations"
-        data: {
-          productId,
-          quantity,
-          type: "IN",
-          date: new Date(),
-        },
-      });
-      
+    await db.execute("INSERT INTO migrations (productId, quantity, type, date) VALUES (?, ?, 'IN', NOW())", [
+      productId,
+      quantity,
+    ]);
 
-    return NextResponse.json(
-      { message: "Stock updated successfully" },
-      { status: 201 }
-    );
+    return NextResponse.json({ message: "Stock updated successfully" }, { status: 201 });
   } catch (error) {
-    console.error("❌ Error adding stock:", error);
+    console.error("❌ Error updating stock:", error);
     return NextResponse.json({ error: "Error updating stock" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect(); // ✅ Prevents memory leaks
   }
 }

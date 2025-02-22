@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import db from "@/lib/db";
 
 /**
  * 🔹 PUT: Update a product in the inventory
  */
 export async function PUT(request: NextRequest) {
   try {
-    // Extract ID from the URL search parameters
+    // Extract ID from the request URL
     const url = new URL(request.url);
     const id = url.pathname.split("/").pop(); // Get the last part of the URL
+
     if (!id) {
       return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
     }
@@ -25,25 +24,39 @@ export async function PUT(request: NextRequest) {
 
     console.log("📌 Updating product with ID:", productId, "New Data:", body); // ✅ Debugging
 
-    // Ensure required fields exist
-    if (!body.name || !body.category || !body.price || body.stock === undefined) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    // Ensure at least one field is provided for update
+    if (!body.name && !body.category && !body.price && body.stock === undefined && !body.supplier) {
+      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
     }
 
     // Update the product in the database
-    const updatedProduct = await prisma.inventory.update({
-      where: { id: productId },
-      data: {
-        name: body.name,
-        category: body.category,
-        price: parseFloat(body.price),
-        stock: parseInt(body.stock, 10),
-        supplier: body.supplier || "N/A",
-        status: body.stock > 0 ? "In Stock" : "Out of Stock",
-      },
-    });
+    const [result]: any = await db.execute(
+      `UPDATE inventory 
+       SET 
+         name = COALESCE(?, name), 
+         category = COALESCE(?, category), 
+         price = COALESCE(?, price), 
+         stock = COALESCE(?, stock), 
+         supplier = COALESCE(?, supplier), 
+         status = CASE WHEN COALESCE(?, stock) > 0 THEN 'In Stock' ELSE 'Out of Stock' END, 
+         lastUpdated = NOW()
+       WHERE id = ?`,
+      [
+        body.name,
+        body.category,
+        body.price !== undefined ? parseFloat(body.price) : null,
+        body.stock !== undefined ? parseInt(body.stock, 10) : null,
+        body.supplier || "N/A",
+        body.stock !== undefined ? parseInt(body.stock, 10) : null,
+        productId,
+      ]
+    );
 
-    return NextResponse.json(updatedProduct, { status: 200 });
+    if (result.affectedRows === 0) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Product updated successfully" }, { status: 200 });
   } catch (error) {
     console.error("❌ Error updating product:", error);
     return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
@@ -51,14 +64,12 @@ export async function PUT(request: NextRequest) {
 }
 
 
-/**
- * 🔹 DELETE: Remove a product from the inventory
- */
 export async function DELETE(request: NextRequest) {
     try {
       // Extract ID from the request URL
       const url = new URL(request.url);
       const id = url.pathname.split("/").pop(); // Get the last part of the URL
+  
       if (!id) {
         return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
       }
@@ -69,9 +80,11 @@ export async function DELETE(request: NextRequest) {
       }
   
       // Delete product
-      await prisma.inventory.delete({
-        where: { id: productId },
-      });
+      const [result]: any = await db.execute("DELETE FROM inventory WHERE id = ?", [productId]);
+  
+      if (result.affectedRows === 0) {
+        return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      }
   
       return NextResponse.json({ message: "✅ Product deleted successfully" }, { status: 200 });
     } catch (error) {
@@ -79,3 +92,4 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
     }
   }
+  

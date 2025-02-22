@@ -373,7 +373,10 @@ export default function SalesPage() {
     sales.map((sale) => (
       <TableRow key={sale.id}>
         <TableCell>{format(sale.date, "PP")}</TableCell>
-        <TableCell>{sale.product ? sale.product.name : "Unknown Product"}</TableCell> {/* ✅ Safe access */}
+        <TableCell>
+        {sale.product?.name || "Unknown Product"} {/* ✅ This prevents errors */}
+      </TableCell>
+{/* ✅ Safe access */}
         <TableCell>{sale.quantity}</TableCell>
         <TableCell className="text-right">KSH {sale.total.toFixed(2)}</TableCell>
         <TableCell>
@@ -390,7 +393,6 @@ export default function SalesPage() {
     ))
   )}
 </TableBody>
-
 </Table>
 
           </CardContent>
