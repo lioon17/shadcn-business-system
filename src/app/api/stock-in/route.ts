@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     });
 
     // 🔹 Log Stock Movement
-    await prisma.migration.create({
+    await prisma.migrations.create({
       data: {
         productId,
         quantity,
