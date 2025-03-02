@@ -49,29 +49,31 @@ export default function CalendarPage() {
 
   const fetchSales = useCallback(async () => {
     try {
-      const response = await fetch("/api/sales")
-      if (!response.ok) throw new Error("Failed to fetch sales")
-      const data = await response.json()
-
+      const response = await fetch("/api/sales");
+      if (!response.ok) throw new Error("Failed to fetch sales");
+  
+      const data = await response.json();
+  
       setSales(
         data.map((sale: any) => ({
           ...sale,
-          date: new Date(sale.date),
+          date: new Date(sale.date), // ✅ Ensure it remains a Date object
           total: Number(sale.total),
           price: Number(sale.price),
-        })),
-      )
+        }))
+      );
     } catch (error) {
-      console.error("Error fetching sales:", error)
+      console.error("❌ Error fetching sales:", error);
       toast({
         title: "Error",
         description: "Failed to fetch sales data",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [toast])
+  }, [toast]);
+  
 
   useEffect(() => {
     fetchSales()

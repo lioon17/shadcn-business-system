@@ -54,7 +54,8 @@ export async function GET() {
       quantity: sale.quantity,
       price: parseFloat(sale.price.toString()),
       total: parseFloat(sale.total.toString()),
-      date: sale.date,
+      // ✅ Keep `date` as a Date object instead of converting it to a string
+      date: new Date(sale.date), 
     }));
 
     return NextResponse.json(formattedSales, { status: 200 });
@@ -63,6 +64,7 @@ export async function GET() {
     return NextResponse.json({ error: "Failed to fetch sales" }, { status: 500 });
   }
 }
+
 
 export async function DELETE(req: Request) {
   try {
