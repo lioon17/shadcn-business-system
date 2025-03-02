@@ -51,19 +51,18 @@ export default function CalendarPage() {
     try {
       const response = await fetch("/api/sales");
       if (!response.ok) throw new Error("Failed to fetch sales");
-  
+
       const data = await response.json();
-  
       setSales(
         data.map((sale: any) => ({
           ...sale,
-          date: new Date(sale.date), // ✅ Ensure it remains a Date object
+          date: new Date(sale.date), // ✅ Ensure proper date conversion
           total: Number(sale.total),
           price: Number(sale.price),
         }))
       );
     } catch (error) {
-      console.error("❌ Error fetching sales:", error);
+      console.error("Error fetching sales:", error);
       toast({
         title: "Error",
         description: "Failed to fetch sales data",
@@ -73,25 +72,36 @@ export default function CalendarPage() {
       setLoading(false);
     }
   }, [toast]);
+
+  useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
+
+  /** ✅ Add `getDailySales` HERE (After `fetchSales`) **/
+  const getDailySales = (date: Date): DailySales => {
+    const dailySales = sales.filter((sale) => 
+      isSameDay(new Date(sale.date), new Date(date)) // ✅ Ensures proper local date comparison
+    );
+    
+    return {
+      total: dailySales.reduce((sum, sale) => sum + sale.total, 0),
+      transactions: dailySales.length,
+      sales: dailySales,
+    };
+  };
+
+  // ✅ This remains unchanged
+  const daysInMonth = eachDayOfInterval({
+    start: startOfMonth(currentDate),
+    end: endOfMonth(currentDate),
+  });
+
   
 
   useEffect(() => {
     fetchSales()
   }, [fetchSales])
 
-  const getDailySales = (date: Date): DailySales => {
-    const dailySales = sales.filter((sale) => isSameDay(new Date(sale.date), date))
-    return {
-      total: dailySales.reduce((sum, sale) => sum + sale.total, 0),
-      transactions: dailySales.length,
-      sales: dailySales,
-    }
-  }
-
-  const daysInMonth = eachDayOfInterval({
-    start: startOfMonth(currentDate),
-    end: endOfMonth(currentDate),
-  })
 
   const previousMonth = () => {
     setCurrentDate(subMonths(currentDate, 1))
