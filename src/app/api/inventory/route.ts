@@ -2,28 +2,61 @@ import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { Inventory } from "@/types/inventory";
 import { ResultSetHeader } from "mysql2";
+import { RowDataPacket } from "mysql2";
 
 /**
- * 🔹 GET: Fetch all products in inventory
+ * 🔹 Define Type for Inventory Items
+ */
+interface InventoryItem extends RowDataPacket {
+  inventory_id: number;
+  product_name: string;
+  price: string | number;
+  stock: number;
+  category: string;
+  supplier: string;
+  status: string;
+  lastUpdated: string;
+}
+
+/**
+ * 🔹 GET: Fetch all inventory items with product details
  */
 export async function GET() {
-    try {
-      const [rows] = await db.execute("SELECT * FROM inventory"); // ✅ Extract only the rows
-      const products = rows as Inventory[]; // ✅ Explicitly cast rows to Inventory[]
-  
-      // 🔹 Convert price to a number before sending the response
-      const formattedProducts = products.map((product) => ({
-        ...product,
-        price: parseFloat(product.price.toString()), // ✅ Ensure `price` is a number
-      }));
-  
-      return NextResponse.json(formattedProducts, { status: 200 });
-    } catch (error) {
-      console.error("❌ Error fetching inventory:", error);
-      return NextResponse.json({ error: "Error fetching inventory" }, { status: 500 });
-    }
+  try {
+    // 🔹 Ensure `db.execute` returns correctly typed rows
+    const [rows] = await db.execute<InventoryItem[]>(
+      `SELECT 
+          i.id AS inventory_id,  
+          p.name AS product_name, 
+          p.price, 
+          p.stock, 
+          i.category, 
+          i.supplier, 
+          i.status, 
+          i.lastUpdated
+       FROM inventory i
+       JOIN product p ON i.productId = p.id`
+    );
+
+    // 🔹 Ensure `price` is converted to a number
+    const formattedProducts = rows.map((item) => ({
+      id: item.inventory_id, // ✅ Use inventory_id as "id"
+      name: item.product_name,
+      category: item.category,
+      price: parseFloat(item.price.toString()), // ✅ Ensure price is a number
+      stock: item.stock,
+      supplier: item.supplier,
+      status: item.status,
+      lastUpdated: item.lastUpdated,
+    }));
+
+    return NextResponse.json(formattedProducts, { status: 200 });
+  } catch (error) {
+    console.error("❌ Error fetching inventory:", error);
+    return NextResponse.json({ error: "Error fetching inventory" }, { status: 500 });
   }
-  
+}
+
 
 
 export async function POST(req: Request) {

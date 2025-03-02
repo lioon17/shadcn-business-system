@@ -99,7 +99,7 @@ export const Sidebar = () => {
       <div className="mt-8">
           <div className="text-sm text-gray-400 mb-4">Active Members</div>
           <div className="space-y-4">
-            {["Katchryn", "Courtney", "Marvin"].map((name, i) => (
+            {["Stunna"].map((name, i) => (
               <div key={i} className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={`/placeholder.svg`} />
@@ -112,7 +112,7 @@ export const Sidebar = () => {
           </div>
           <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10 mt-4">
             <ChevronDown className="mr-2 h-4 w-4" />
-            976+ More Members
+            1+ Members
           </Button>
         </div>
       </div>

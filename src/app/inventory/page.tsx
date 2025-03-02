@@ -67,6 +67,8 @@ export default function InventoryPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null)
+  const [filterStock, setFilterStock] = useState("all"); // 🔹 New stock filter state
+  const [searchQuery, setSearchQuery] = useState(""); // 🔹 New search state
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -86,7 +88,28 @@ export default function InventoryPage() {
       if (!response.ok) throw new Error("Failed to fetch products");
 
       const data = await response.json();
-      setProducts(data);
+
+      // 🔹 Apply category filter
+      let filteredData = selectedCategory === "all"
+        ? data
+        : data.filter((product: Product) => product.category === selectedCategory);
+
+      // 🔹 Apply stock filter
+      if (filterStock === "low") {
+        filteredData = filteredData.filter((product: Product) => product.stock > 0 && product.stock <= 5);
+      } else if (filterStock === "out") {
+        filteredData = filteredData.filter((product: Product) => product.stock === 0);
+      }
+
+      // 🔹 Apply search filter
+      if (searchQuery.trim() !== "") {
+        filteredData = filteredData.filter((product: Product) =>
+          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.supplier.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+
+      setProducts(filteredData);
     } catch (error) {
       console.error("❌ Error fetching products:", error);
       toast({
@@ -97,7 +120,8 @@ export default function InventoryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]); // ✅ Add toast as a dependency
+  }, [toast, selectedCategory, filterStock, searchQuery]); // ✅ Re-fetch when filters change
+
 
   /**
    * 🔹 Sync Form with Selected Product
@@ -121,6 +145,35 @@ export default function InventoryPage() {
     fetchProducts();
   }, [fetchProducts]); // ✅ Correctly references fetchProducts
 
+  
+
+    /**
+   * 🔹 Export to CSV
+   */
+    const handleExport = () => {
+      const csvContent = [
+        ["Product ID", "Name", "Category", "Price", "Stock", "Supplier", "Status"],
+        ...products.map((product) => [
+          product.id,
+          product.name,
+          product.category,
+          product.price,
+          product.stock,
+          product.supplier,
+          product.status,
+        ]),
+      ]
+        .map((row) => row.join(","))
+        .join("\n");
+  
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "inventory.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
   
 
   const handleAddProduct = async (data: z.infer<typeof productSchema>) => {
@@ -219,10 +272,11 @@ export default function InventoryPage() {
             <Upload className="w-4 h-4 mr-2" />
             Import
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
+
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -299,28 +353,38 @@ export default function InventoryPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="relative w-full sm:w-auto">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search products..." className="pl-8 w-full sm:w-[300px]" />
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or supplier..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 w-full sm:w-[300px]"
+            />
           </div>
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="accessories">Accessories</SelectItem>
-              <SelectItem value="clothing">Clothing</SelectItem>
-              <SelectItem value="electronics">Electronics</SelectItem>
+            <SelectItem value="all">All Categories</SelectItem> {/* ✅ Keep option for all categories */}
+    <SelectItem value="watch section">Watch Section</SelectItem> {/* ✅ Updated category names */}
+    <SelectItem value="necklaces section">Necklaces Section</SelectItem>
+    <SelectItem value="ponds section">Ponds Section</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            Low Stock
-          </Button>
-          <Button variant="outline" size="sm">
-            Out of Stock
-          </Button>
+          {/* 🔹 Stock Filter */}
+          <Select value={filterStock} onValueChange={setFilterStock}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Stock Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Stock</SelectItem>
+              <SelectItem value="low">Low Stock (≤5)</SelectItem>
+              <SelectItem value="out">Out of Stock</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

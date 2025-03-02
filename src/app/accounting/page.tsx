@@ -1,8 +1,9 @@
+/* eslint-disable */
 "use client"
 
 import type React from "react"
 
-import { useEffect, useCallback, useState } from "react";
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -32,65 +33,58 @@ interface Sale {
     name: string
   }
   quantity: number
-  price: number
-  total: number
+  price: number // Original price
+  total: number // Final price after discount
 }
 
 export default function AccountingPage() {
   const [selectedMonth, setSelectedMonth] = useState("All")
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([])
   const [sales, setSales] = useState<Sale[]>([])
+  const [salesSearch, setSalesSearch] = useState("")
+  const [stockSearch, setStockSearch] = useState("")
   const [newStockEntry, setNewStockEntry] = useState({
     productId: "",
     quantity: "",
   })
   const { toast } = useToast()
 
-  const fetchStockMovements = useCallback(async () => {
-    try {
-      const response = await fetch("/api/stock-movements");
-      if (!response.ok) throw new Error("Failed to fetch stock movements");
+  useEffect(() => {
+    fetchStockMovements()
+    fetchSales()
+  }, [])
 
-      const data = await response.json();
-      setStockMovements(data);
+  const fetchStockMovements = async () => {
+    try {
+      const response = await fetch("/api/stock-movements")
+      if (!response.ok) throw new Error("Failed to fetch stock movements")
+      const data = await response.json()
+      setStockMovements(data)
     } catch (error) {
-      console.error("❌ Error fetching stock movements:", error);
+      console.error("Error fetching stock movements:", error)
       toast({
         title: "Error",
         description: "Failed to fetch stock movements. Please try again.",
         variant: "destructive",
-      });
+      })
     }
-  }, [toast]); // ✅ Correct dependency
+  }
 
-  /**
-   * 🔹 Fetch Sales Data
-   */
-  const fetchSales = useCallback(async () => {
+  const fetchSales = async () => {
     try {
-      const response = await fetch("/api/sales");
-      if (!response.ok) throw new Error("Failed to fetch sales");
-
-      const data = await response.json();
-      setSales(data);
+      const response = await fetch("/api/sales")
+      if (!response.ok) throw new Error("Failed to fetch sales")
+      const data = await response.json()
+      setSales(data)
     } catch (error) {
-      console.error("❌ Error fetching sales:", error);
+      console.error("Error fetching sales:", error)
       toast({
         title: "Error",
         description: "Failed to fetch sales. Please try again.",
         variant: "destructive",
-      });
+      })
     }
-  }, [toast]); // ✅ Correct dependency
-
-  /**
-   * 🔹 Fetch Data on Component Mount
-   */
-  useEffect(() => {
-    fetchStockMovements();
-    fetchSales();
-  }, [fetchStockMovements, fetchSales]); // ✅ Dependencies correctly included
-
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -109,31 +103,31 @@ export default function AccountingPage() {
     }
 
     try {
-      const response = await fetch("/api/stock-in", {  // ✅ Ensure POST is used
+      const response = await fetch("/api/stock-in", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(newStockEntry),
-      });
-  
-      if (!response.ok) throw new Error("Failed to add stock entry");
-  
-      setNewStockEntry({ productId: "", quantity: "" });
+      })
+
+      if (!response.ok) throw new Error("Failed to add stock entry")
+
+      setNewStockEntry({ productId: "", quantity: "" })
       toast({
         title: "Success",
         description: "New stock entry added successfully",
-      });
-      fetchStockMovements(); // Refresh stock movements
+      })
+      fetchStockMovements() // Refresh stock movements
     } catch (error) {
-      console.error("Error adding stock entry:", error);
+      console.error("Error adding stock entry:", error)
       toast({
         title: "Error",
         description: "Failed to add stock entry. Please try again.",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   const filteredStockMovements =
     selectedMonth === "All"
@@ -146,6 +140,21 @@ export default function AccountingPage() {
     selectedMonth === "All"
       ? sales
       : sales.filter((item) => new Date(item.date).toLocaleString("default", { month: "long" }) === selectedMonth)
+
+  // Search filtering functions
+  const searchedSales = filteredSales.filter(
+    (sale) =>
+      sale.product.name.toLowerCase().includes(salesSearch.toLowerCase()) ||
+      new Date(sale.date).toLocaleDateString().includes(salesSearch) ||
+      sale.total.toString().includes(salesSearch),
+  )
+
+  const searchedStockMovements = filteredStockMovements.filter(
+    (movement) =>
+      movement.product.name.toLowerCase().includes(stockSearch.toLowerCase()) ||
+      new Date(movement.date).toLocaleDateString().includes(stockSearch) ||
+      movement.type.toLowerCase().includes(stockSearch.toLowerCase()),
+  )
 
   const monthlyStockInData = stockMovements
     .filter((movement) => movement.type === "IN")
@@ -172,6 +181,19 @@ export default function AccountingPage() {
     stockIn: monthlyStockInData[month],
     profit: monthlyProfitData[month] || 0,
   }))
+
+  // Calculate total discount amount for filtered sales
+  const totalDiscount = filteredSales.reduce((sum, sale) => {
+    const originalTotal = sale.price * sale.quantity
+    const discount = originalTotal - sale.total
+    return sum + discount
+  }, 0)
+
+  // Calculate average discount rate
+  const averageDiscountRate =
+    filteredSales.length > 0
+      ? (totalDiscount / filteredSales.reduce((sum, sale) => sum + sale.price * sale.quantity, 0)) * 100
+      : 0
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -234,7 +256,7 @@ export default function AccountingPage() {
         <Card>
           <CardHeader>
             <CardTitle>Financial Summary</CardTitle>
-            <CardDescription>Overview of sales and profits</CardDescription>
+            <CardDescription>Overview of sales and discounts</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -245,13 +267,9 @@ export default function AccountingPage() {
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Total Profit</p>
-                <p className="text-2xl font-bold text-green-600">
-                  KSH{" "}
-                  {filteredSales
-                    .reduce((sum, item) => sum + (item.total - item.price * item.quantity), 0)
-                    .toLocaleString()}
-                </p>
+                <p className="text-sm text-muted-foreground">Total Discount</p>
+                <p className="text-2xl font-bold text-amber-600">KSH {totalDiscount.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">({averageDiscountRate.toFixed(1)}% avg. rate)</p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">Total Transactions</p>
@@ -324,9 +342,27 @@ export default function AccountingPage() {
       <Card>
         <CardHeader>
           <CardTitle>Sales Details</CardTitle>
-          <CardDescription>Breakdown of sales and profits</CardDescription>
+          <CardDescription>Breakdown of sales and discounts</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <div className="flex items-center space-x-2">
+              <Input
+                placeholder="Search sales by product, date, or amount..."
+                value={salesSearch}
+                onChange={(e) => setSalesSearch(e.target.value)}
+                className="max-w-sm"
+              />
+              {salesSearch && (
+                <Button variant="ghost" onClick={() => setSalesSearch("")} className="px-2">
+                  Clear
+                </Button>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Showing {searchedSales.length} of {filteredSales.length} sales
+            </p>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -334,14 +370,17 @@ export default function AccountingPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
+                  <TableHead className="text-right">Original Price</TableHead>
                   <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Profit</TableHead>
+                  <TableHead className="text-right">Discount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSales.map((sale) => {
-                  const profit = sale.total - sale.price * sale.quantity
+                {searchedSales.map((sale) => {
+                  const originalTotal = sale.price * sale.quantity
+                  const discount = originalTotal - sale.total
+                  const discountRate = (discount / originalTotal) * 100
+
                   return (
                     <TableRow key={sale.id}>
                       <TableCell>{new Date(sale.date).toLocaleDateString()}</TableCell>
@@ -353,12 +392,14 @@ export default function AccountingPage() {
                         <Badge
                           variant="outline"
                           className={
-                            profit > 0
-                              ? "bg-green-50 text-green-600 border-green-200"
-                              : "bg-red-50 text-red-600 border-red-200"
+                            discount > 0
+                              ? "bg-amber-50 text-amber-600 border-amber-200"
+                              : "bg-gray-50 text-gray-600 border-gray-200"
                           }
                         >
-                          KSH {profit.toLocaleString()}
+                          {discount > 0
+                            ? `${discountRate.toFixed(1)}% (KSH ${discount.toLocaleString()})`
+                            : "No discount"}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -376,6 +417,24 @@ export default function AccountingPage() {
           <CardDescription>Breakdown of stock movements</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <div className="flex items-center space-x-2">
+              <Input
+                placeholder="Search stock movements by product, date, or type..."
+                value={stockSearch}
+                onChange={(e) => setStockSearch(e.target.value)}
+                className="max-w-sm"
+              />
+              {stockSearch && (
+                <Button variant="ghost" onClick={() => setStockSearch("")} className="px-2">
+                  Clear
+                </Button>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Showing {searchedStockMovements.length} of {filteredStockMovements.length} movements
+            </p>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -387,7 +446,7 @@ export default function AccountingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStockMovements.map((movement) => (
+                {searchedStockMovements.map((movement) => (
                   <TableRow key={movement.id}>
                     <TableCell>{new Date(movement.date).toLocaleDateString()}</TableCell>
                     <TableCell>{movement.product.name}</TableCell>

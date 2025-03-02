@@ -57,6 +57,12 @@ const formSchema = z.object({
       invalid_type_error: "Price must be a number.",
     })
     .min(0, "Price must be greater than or equal to 0."),
+    total: z
+    .number({
+      required_error: "Please enter a total sale price.",
+      invalid_type_error: "Total must be a number.",
+    })
+    .min(0, "Total price must be greater than or equal to 0."), // ✅ Added total column
 })
 
 export default function SalesPage() {
@@ -73,6 +79,7 @@ export default function SalesPage() {
       productId: 0,
       quantity: 1,
       price: 0,
+      total: 0, 
     },
   })
 
@@ -328,37 +335,37 @@ export default function SalesPage() {
                   )}
                 />
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
+                <FormField
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          {...field}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+             <FormField
                     control={form.control}
-                    name="quantity"
+                    name="total"  // ✅ New Input for Final Sale Amount
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Quantity</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Price</FormLabel>
+                        <FormLabel>Total Sale Price</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min="0"
                             step="0.01"
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={(e) => field.onChange(Number(e.target.value))}  // ✅ Ensures proper number conversion
                           />
                         </FormControl>
                         <FormMessage />

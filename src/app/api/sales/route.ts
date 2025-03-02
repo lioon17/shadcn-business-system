@@ -27,13 +27,14 @@ interface ProductRow extends RowDataPacket {
   stock: number;
 }
 
+// ✅ Define SaleInput Interface
 interface SaleInput {
   date: string;
   productId: number;
   quantity: number;
   price: number;
+  total: number; // ✅ Ensure total is included
 }
-
 /**
  * 🔹 GET: Fetch All Sales
  */
@@ -89,25 +90,26 @@ export async function DELETE(req: Request) {
   }
 }
 
+
 export async function POST(request: Request) {
   let conn: PoolConnection | null = null;
   
   try {
-    // 🔹 Parse the request body
+    // ✅ Parse the request body
     const body = await request.json();
     console.log("📌 Received Payload:", body); // Debugging
 
-    const { date, productId, quantity, price }: SaleInput = body;
+    const { date, productId, quantity, price, total }: SaleInput = body;
 
-    // 🔹 Validate required fields
-    if (!date || !productId || quantity <= 0 || price <= 0) {
+    // ✅ Validate Required Fields
+    if (!date || !productId || quantity <= 0 || price <= 0 || total <= 0) {
       return NextResponse.json(
         { error: "Invalid input. Ensure all fields are provided correctly." },
         { status: 400 }
       );
     }
 
-    // 🔹 Check if product exists and fetch stock
+    // ✅ Check if product exists and fetch stock
     const [productRows] = await db.execute<ProductRow[]>(
       "SELECT stock FROM product WHERE id = ?",
       [productId]
@@ -119,40 +121,37 @@ export async function POST(request: Request) {
 
     const productStock = productRows[0].stock;
 
-    // 🔹 Check if there is enough stock
+    // ✅ Check if Stock is Sufficient
     if (productStock < quantity) {
       return NextResponse.json(
-        { error: "Insufficient stock available" },
+        { error: `Insufficient stock. Available: ${productStock}` },
         { status: 400 }
       );
     }
 
-    // 🔹 Calculate total price
-    const total = quantity * price;
-
-    // 🔹 Start transaction
+    // ✅ Start Database Transaction
     conn = await (db as Pool).getConnection();
     await conn.beginTransaction();
 
-    // 🔹 Insert sale record
+    // ✅ Insert Sale Record (Now Using the Discounted `total`)
     const [saleResult] = await conn.execute<ResultSetHeader>(
       "INSERT INTO sale (date, productId, quantity, price, total) VALUES (?, ?, ?, ?, ?)",
-      [new Date(date), productId, quantity, price, total]
+      [new Date(date), productId, quantity, price, total]  // ✅ Now stores the correct total
     );
 
-    // 🔹 Reduce stock in product table
+    // ✅ Reduce Stock in Product Table
     await conn.execute<ResultSetHeader>(
       "UPDATE product SET stock = stock - ? WHERE id = ?",
       [quantity, productId]
     );
 
-    // 🔹 Insert stock movement
+    // ✅ Insert Stock Movement Log
     await conn.execute<ResultSetHeader>(
       "INSERT INTO migrations (productId, quantity, type, date) VALUES (?, ?, 'OUT', ?)",
       [productId, quantity, new Date(date)]
     );
 
-    // 🔹 Commit transaction
+    // ✅ Commit Transaction
     await conn.commit();
 
     return NextResponse.json(
@@ -160,14 +159,10 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    if (conn) {
-      await conn.rollback();
-    }
+    if (conn) await conn.rollback();
     console.error("❌ Error creating sale:", error);
     return NextResponse.json({ error: "Failed to create sale" }, { status: 500 });
   } finally {
-    if (conn) {
-      conn.release();
-    }
+    if (conn) conn.release();
   }
 }
