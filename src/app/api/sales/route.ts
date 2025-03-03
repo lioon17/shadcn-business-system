@@ -54,7 +54,7 @@ export async function GET() {
       quantity: sale.quantity,
       price: parseFloat(sale.price.toString()),
       total: parseFloat(sale.total.toString()),
-      date: new Date(new Date(sale.date + "Z").toLocaleString("en-US", { timeZone: "Africa/Nairobi" })), // ✅ Fix timezone shift
+      date: new Date(new Date(sale.date + "Z").setHours(new Date(sale.date + "Z").getHours() - 3)), // ✅ Fix
     }));
     
 
