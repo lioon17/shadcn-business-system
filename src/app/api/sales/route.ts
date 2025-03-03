@@ -54,9 +54,9 @@ export async function GET() {
       quantity: sale.quantity,
       price: parseFloat(sale.price.toString()),
       total: parseFloat(sale.total.toString()),
-      // ✅ Keep `date` as a Date object instead of converting it to a string
-      date: new Date(sale.date), 
+      date: new Date(new Date(sale.date + "Z").toLocaleString("en-US", { timeZone: "Africa/Nairobi" })), // ✅ Fix timezone shift
     }));
+    
 
     return NextResponse.json(formattedSales, { status: 200 });
   } catch (error) {

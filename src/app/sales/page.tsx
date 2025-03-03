@@ -85,27 +85,31 @@ export default function SalesPage() {
 
   const fetchSales = useCallback(async () => {
     try {
-      const response = await fetch("/api/sales")
-      if (!response.ok) throw new Error("Failed to fetch sales")
-      const data = await response.json()
-
-      console.log("📌 Fetched Sales Data:", data)
-
+      const response = await fetch("/api/sales");
+      if (!response.ok) throw new Error("Failed to fetch sales");
+  
+      const data = await response.json();
+  
       setSales(
-        data.map((sale: Sale) => ({
+        data.map((sale: any) => ({
           ...sale,
-          date: new Date(sale.date),
-          price: Number(sale.price),
+          date: new Date(new Date(sale.date).toLocaleString("en-US", { timeZone: "Africa/Nairobi" })), // ✅ Converts to local time
           total: Number(sale.total),
-        })),
-      )
+          price: Number(sale.price),
+        }))
+      );
     } catch (error) {
-      console.error("❌ Error fetching sales:", error)
-      toast({ title: "Error", description: "Failed to fetch sales.", variant: "destructive" })
+      console.error("Error fetching sales:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch sales data",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [toast])
+  }, [toast]);
+  
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -372,6 +376,7 @@ export default function SalesPage() {
                       </FormItem>
                     )}
                   />
+
                 </div>
                 <Button type="submit" className="w-full">
                   Add Sale
