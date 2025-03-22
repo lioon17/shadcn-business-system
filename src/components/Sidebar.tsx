@@ -72,6 +72,14 @@ export const Sidebar = () => {
             Sales Management
           </Link>
         </Button>
+
+
+        <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10" asChild>
+          <Link href="/perfume">
+            <DollarSign className="mr-2 h-4 w-4" />
+            perfume sales
+          </Link>
+        </Button>
        
         <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10" asChild>
           <Link href="/sales-report">
